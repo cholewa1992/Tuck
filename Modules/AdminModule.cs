@@ -18,5 +18,12 @@ namespace Brothers.Modules
                 await channel.SendMessageAsync(msg);
             }
         }
+
+        [Command("time")]
+        public async Task Time() {
+            if(Context.User.Id == 103492791069327360) {
+                await ReplyAsync(DateTime.Now.ToString());
+            }
+        }
     }
 }

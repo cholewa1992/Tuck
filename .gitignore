@@ -2,6 +2,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/osx,dotnetcore,windows
 # Edit at https://www.toptal.com/developers/gitignore?templates=osx,dotnetcore,windows
 
+tuck.db
+Hangfire.db
+
 ### DotnetCore ###
 # .NET Core build folders
 bin/
