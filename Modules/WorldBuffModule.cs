@@ -100,7 +100,7 @@ namespace Tuck.Modules
                 }
 
                 // Adding a job for later to make notifications
-                var notification = $"{_icons[buff.Type]} {buff.Type} is being popped in {(buff.Time - DateTime.Now).Minutes} minutes by {buff.Username}";
+                var notification = $"{_icons[buff.Type]} {buff.Type} is being popped at {buff.Time.ToString("HH:mm")} by {buff.Username}";
                 buff.JobId = NotificationService.PushNotification(buff.GuildId, notification, buff.Time - DateTime.Now - TimeSpan.FromMinutes(5));
 
                 // Saving the buff instance
