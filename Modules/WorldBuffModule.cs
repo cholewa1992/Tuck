@@ -139,7 +139,7 @@ namespace Tuck.Modules
         private string GetBuffPost(TuckContext context, ulong guildId) {
             var buffs = context.Buffs.AsQueryable()
                 .Where(t => t.GuildId == guildId && DateTime.Now < t.Time)
-                .OrderByDescending(t => t.Time).ThenBy(t => t.Type)
+                .OrderBy(t => t.Time).ThenBy(t => t.Type)
                 .ToList()
                 .Select(t => $"\n> {_icons[t.Type]} {t.Time.ToString("HH:mm")} by {t.Username}")
                 .Aggregate("", (s1,s2) => s1 + s2);
