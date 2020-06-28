@@ -32,8 +32,7 @@ namespace Tuck
                 client.Log += LogAsync;
                 services.GetRequiredService<CommandService>().Log += LogAsync;
 
-                //await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DiscordToken"));
-                await client.LoginAsync(TokenType.Bot, "Njc2OTA1MzI2NDQzODg4NjQx.XvidCA.os4LZ6qgxyxiyUJ1kXg9STZ_WUI");
+                await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DiscordToken"));
                 await client.StartAsync();
 
                 await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
