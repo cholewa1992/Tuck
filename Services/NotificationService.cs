@@ -18,10 +18,12 @@ namespace Tuck.Services
         }
 
         public static string PushNotification(ulong guildId, string msg) {
+            Console.WriteLine($"Notification added. ({msg})");
             return BackgroundJob.Enqueue<NotificationService>(ns => ns.HandleNotification(guildId, msg));
         }
 
         public static string PushNotification(ulong guildId, string msg, TimeSpan time) {
+            Console.WriteLine($"Notification added. ({time} )({msg})");
             return BackgroundJob.Schedule<NotificationService>(ns => ns.HandleNotification(guildId, msg), time);
         }
 
@@ -38,6 +40,7 @@ namespace Tuck.Services
         }
 
         public async Task HandleNotification(ulong guildId, string msg) {
+            Console.WriteLine($"Now notifying. ({msg})");
             foreach(var subscription in getSubscriptions(guildId)) {
                 var channel = _client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
                 await channel.SendMessageAsync(msg);

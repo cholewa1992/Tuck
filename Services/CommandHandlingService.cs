@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using System.Text.RegularExpressions;
 using Tuck.Readers;
 using Tuck.Model;
 
@@ -52,7 +51,7 @@ namespace Tuck.Services
                     await message.Channel.SendMessageAsync("Fuck you Sena");
                 }
                 if(message.Content.Contains("Death's Sting") || message.Content.Contains("item=21126")) {
-                    await message.Channel.SendMessageAsync("That weapon should be prio to Mondino!");
+                    await message.Channel.SendMessageAsync("That weapon should be prio to <@103492791069327360>!");
                 }
                 if(_random.Next(100) == 0) {
                     var channel = await message.Author.GetOrCreateDMChannelAsync();

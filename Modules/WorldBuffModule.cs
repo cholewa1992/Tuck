@@ -20,7 +20,6 @@ namespace Tuck.Modules
             {BuffType.Ony, 6},
             {BuffType.Rend, 2}
         };
-
         private static Dictionary<BuffType, string> _icons = new Dictionary<BuffType, string> {
             {BuffType.Ony, "<:ony1:724665644641026068>"},
             {BuffType.Nef, "<:nef1:724665563967782923>"},
@@ -29,31 +28,23 @@ namespace Tuck.Modules
         };
 
         [Command("list")]
+        [Alias("overview")]
         [RequireContext(ContextType.Guild)]
         public async Task PostBuffOverview() {
             using(var context = new TuckContext()) {
-                await ReplyAsync(GetBuffPost(context, Context.Guild.Id));
-            }
-        }
-
-        [Command("overview")]
-        [RequireContext(ContextType.Guild)]
-        public async Task PostBuffOverviewFromSubscribedGuilds() {
-            using(var context = new TuckContext()) {
-                var subscriptions = context.Subscriptions.AsQueryable()
+                var subscription = context.Subscriptions.AsQueryable()
                     .Where(s => s.GuildId == Context.Guild.Id)
-                    .ToList();
+                    .FirstOrDefault();
 
-                foreach(var subscription in subscriptions) {
-                     await ReplyAsync(GetBuffPost(context, subscription.TargetGuildId));
-                }
+                await ReplyAsync(GetBuffPost(context, subscription?.TargetGuildId ?? Context.Guild.Id));
             }
         }
 
         [Command("add")]
         [RequireContext(ContextType.Guild)]
         public async Task RegisterBuff(BuffType type, DateTime time) {
-            await RegisterBuff(type, time, Context.Guild.GetUser(Context.User.Id).Nickname);
+            var user = Context.Guild.GetUser(Context.User.Id);
+            await RegisterBuff(type, time, user.Nickname ?? user.Username);
         }  
 
         [Command("add")]
@@ -66,6 +57,15 @@ namespace Tuck.Modules
             }
 
             using(var context = new TuckContext()) {
+
+                var subscription = context.Subscriptions.AsQueryable()
+                    .Where(s => s.GuildId == Context.Guild.Id)
+                    .Any();
+
+                if(subscription) {
+                    await ReplyAsync("You cannot add buffs if a subscription exists");
+                    return;
+                }
 
                 var buff = new BuffInstance {
                     GuildId = Context.Guild.Id,
@@ -100,7 +100,7 @@ namespace Tuck.Modules
                 }
 
                 // Adding a job for later to make notifications
-                var notification = $"{_icons[buff.Type]} {buff.Type} is popping in {(buff.Time - DateTime.Now).Minutes} minutes by {buff.Username} @here";
+                var notification = $"{_icons[buff.Type]} {buff.Type} is being popped in {(buff.Time - DateTime.Now).Minutes} minutes by {buff.Username}";
                 buff.JobId = NotificationService.PushNotification(buff.GuildId, notification, buff.Time - DateTime.Now - TimeSpan.FromMinutes(5));
 
                 // Saving the buff instance
@@ -120,67 +120,18 @@ namespace Tuck.Modules
         [RequireContext(ContextType.Guild)]
         public async Task RemoveBuff(BuffType type, DateTime time) {
             using(var context = new TuckContext()) {
-                var mathces = context.Buffs.AsQueryable()
+                var match = context.Buffs.AsQueryable()
                     .Where(t => t.GuildId == Context.Guild.Id)
                     .Where(t => t.Type == type && t.Time == time)
-                    .ToList();
+                    .FirstOrDefault();
 
-                foreach(var buff in mathces) {
-                    NotificationService.CancelNotification(buff.JobId);
-                    var update  = $"{_icons[buff.Type]} {buff.Type} that was planned for {buff.Time.ToString("dddd")} at {buff.Time.ToString("HH:mm")} has been cancelled by <@{Context.User.Id}>.";
-                    NotificationService.PushNotification(buff.GuildId, update);
-                }
-
-                context.RemoveRange(mathces);
-                await context.SaveChangesAsync();
-                await ReplyAsync(GetBuffPost(context, Context.Guild.Id));
-            }
-        }
-
-        [Command("subscribe")]
-        [RequireContext(ContextType.Guild)]
-        public async Task AddSubscription(ulong guildId) {
-            using(var context = new TuckContext()) {
-                var subscription = new Subscription() {
-                    GuildId = Context.Guild.Id,
-                    ChannelId = Context.Channel.Id,
-                    TargetGuildId = guildId
-                };
-                await context.AddAsync(subscription);
-                await context.SaveChangesAsync();
-                await ReplyAsync("The subscription was added");
-            }
-        }
-
-        [Command("unsubscribe")]
-        [RequireContext(ContextType.Guild)]
-        public async Task Subscription(ulong guildId) {
-            using(var context = new TuckContext()) {
-                var mathces = context.Subscriptions.AsQueryable()
-                    .Where(t => t.GuildId == Context.Guild.Id)
-                    .Where(t => t.TargetGuildId == guildId);
-                context.RemoveRange(mathces);
-                await context.SaveChangesAsync();
-                await ReplyAsync("The subscription was removed");
-            }
-        }
-
-        [Command("clear")]
-        [RequireContext(ContextType.Guild)]
-        public async Task RemoveAllBuffs() {
-            if(Context.User.Id == 103492791069327360) {
-                using(var context = new TuckContext()) {
-                    var mathces = context.Buffs.AsQueryable()
-                        .Where(t => t.GuildId == Context.Guild.Id);
-
-                    foreach(var buff in mathces) {
-                        NotificationService.CancelNotification(buff.JobId);
-                        var update  = $"{_icons[buff.Type]} {buff.Type} that was planned for {buff.Time.ToString("dddd")} at {buff.Time.ToString("HH:mm")} has been cancelled by <@{Context.User.Id}>.";
-                        NotificationService.PushNotification(buff.GuildId, update);
-                    }
-
-                    context.RemoveRange(mathces);
+                if(match != null){
+                    NotificationService.CancelNotification(match.JobId);
+                    var update  = $"{_icons[match.Type]} {match.Type} that was planned for {match.Time.ToString("dddd")} at {match.Time.ToString("HH:mm")} has been cancelled by <@{Context.User.Id}>.";
+                    NotificationService.PushNotification(match.GuildId, update);
+                    context.Remove(match);
                     await context.SaveChangesAsync();
+                    await ReplyAsync(GetBuffPost(context, Context.Guild.Id));
                 }
             }
         }
@@ -188,18 +139,13 @@ namespace Tuck.Modules
         private string GetBuffPost(TuckContext context, ulong guildId) {
             var buffs = context.Buffs.AsQueryable()
                 .Where(t => t.GuildId == guildId && DateTime.Now < t.Time)
-                .ToList();
+                .OrderByDescending(t => t.Time).ThenBy(t => t.Type)
+                .ToList()
+                .Select(t => $"\n> {_icons[t.Type]} {t.Time.ToString("HH:mm")} by {t.Username}")
+                .Aggregate("", (s1,s2) => s1 + s2);
 
-            var msg = "**World buff schedule:**\n";
-            if(buffs.Count() > 0) {
-                foreach(var type in buffs.GroupBy(t => t.Type)) {
-                    var times = type.OrderBy(t => t.Time).Select(e => $"{e.Time.ToString("HH:mm")} ({e.Username})");
-                    msg += $"> {_icons[type.Key]} " + String.Join(", ", times) + "\n";
-                }
-            } else {
-                msg += "> Nothing have been added yet...";
-            }
-            return msg;
+            return "**World buff schedule:**" + 
+                (string.IsNullOrEmpty(buffs) ? "\n> Nothing have been added yet..." : buffs);
         }
     }
 }   
