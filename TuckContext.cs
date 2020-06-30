@@ -11,6 +11,8 @@ namespace Tuck
 
         public DbSet<Subscription> Subscriptions { get; set; }
 
+        public DbSet<WarEffortContribution> Contributions { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder options) 
             => options.UseSqlite("Data Source=tuck.db");
     
