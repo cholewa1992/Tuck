@@ -16,7 +16,6 @@ namespace Tuck.Migrations
                     UserId = table.Column<ulong>(nullable: false),
                     Username = table.Column<string>(nullable: true),
                     GuildId = table.Column<ulong>(nullable: false),
-                    JobId = table.Column<string>(nullable: true),
                     Time = table.Column<DateTime>(nullable: false),
                     Type = table.Column<int>(nullable: false)
                 },

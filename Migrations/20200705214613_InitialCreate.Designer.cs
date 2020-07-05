@@ -9,7 +9,7 @@ using Tuck;
 namespace Tuck.Migrations
 {
     [DbContext(typeof(TuckContext))]
-    [Migration("20200705165241_InitialCreate")]
+    [Migration("20200705214613_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -26,9 +26,6 @@ namespace Tuck.Migrations
 
                     b.Property<ulong>("GuildId")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("JobId")
-                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("Time")
                         .HasColumnType("TEXT");
