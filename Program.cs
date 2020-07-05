@@ -7,8 +7,6 @@ using Discord;
 using Discord.WebSocket;
 using Discord.Commands;
 using Tuck.Services;
-using Hangfire;
-using Hangfire.LiteDB;
 
 namespace Tuck
 {
@@ -20,24 +18,20 @@ namespace Tuck
         {
             using (var services = ConfigureServices())
             {
-                GlobalConfiguration.Configuration
-                    .UseLiteDbStorage("Filename=Hangfire.db;Mode=Exclusive")
-                    .UseActivator(new HangfireActivator(services));
-
-                BackgroundJob.Enqueue(() => Console.WriteLine("Up and running"));
-    
-                var engine = services.GetRequiredService<BackgroundJobServer>();
-                var client = services.GetRequiredService<DiscordSocketClient>();
-
-                client.Log += LogAsync;
-                services.GetRequiredService<CommandService>().Log += LogAsync;
-
-                await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DiscordToken"));
-                await client.StartAsync();
-
-                await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
+                await SetupDiscord(services);
                 await Task.Delay(Timeout.Infinite);              
             }
+        }
+
+        private async Task SetupDiscord(ServiceProvider services){
+            var client = services.GetRequiredService<DiscordSocketClient>();
+
+            client.Log += LogAsync;
+            services.GetRequiredService<CommandService>().Log += LogAsync;
+
+            await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DiscordToken"));
+            await client.StartAsync();
+            await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
         }
 
         private Task LogAsync(LogMessage log)
@@ -52,8 +46,6 @@ namespace Tuck
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandlingService>()
-                .AddSingleton<NotificationService>()
-                .AddSingleton<BackgroundJobServer>()
                 .AddSingleton<HttpClient>()
                 .BuildServiceProvider();
         }
