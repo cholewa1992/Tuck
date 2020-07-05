@@ -1,11 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using Tuck;
-using System.Linq;
 
 namespace Brothers.Modules
 {

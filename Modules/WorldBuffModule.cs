@@ -5,9 +5,7 @@ using System.Text.RegularExpressions;
 using Discord.Commands;
 using Tuck.Model;
 using System.Collections.Generic;
-using Discord;
-using Hangfire;
-using Tuck.Services;
+using Discord.WebSocket;
 
 namespace Tuck.Modules
 {
@@ -24,7 +22,7 @@ namespace Tuck.Modules
             {BuffType.Ony, "<:ony1:724665644641026068>"},
             {BuffType.Nef, "<:nef1:724665563967782923>"},
             {BuffType.Zg, "<:zg1:724665670402310194>"},
-            {BuffType.Rend, "<:WCB1:724665604245684284>"},
+            {BuffType.Rend, "<:WCB1:724665604245684284>"}
         };
 
         [Command("list")]
@@ -99,17 +97,13 @@ namespace Tuck.Modules
                     }
                 }
 
-                // Adding a job for later to make notifications
-                var notification = $"{_icons[buff.Type]} {buff.Type} is being popped at {buff.Time.ToString("HH:mm")} by {buff.Username}";
-                buff.JobId = NotificationService.PushNotification(buff.GuildId, notification, buff.Time - DateTime.Now - TimeSpan.FromMinutes(5));
-
                 // Saving the buff instance
                 await context.AddAsync(buff);
                 await context.SaveChangesAsync();
 
                 // Posting an update message in all subscribing channels
                 var update  = $"{_icons[buff.Type]} {buff.Type} will be popped {buff.Time.ToString("dddd")} at {buff.Time.ToString("HH:mm")} by {buff.Username} (Added by <@{buff.UserId}>).";
-                NotificationService.PushNotification(buff.GuildId, update);
+                await MakeNotification(context, buff.GuildId, update);
 
                 // Posting the updated schedule in this channel
                 await ReplyAsync(GetBuffPost(context, buff.GuildId));
@@ -120,19 +114,30 @@ namespace Tuck.Modules
         [RequireContext(ContextType.Guild)]
         public async Task RemoveBuff(BuffType type, DateTime time) {
             using(var context = new TuckContext()) {
-                var match = context.Buffs.AsQueryable()
+                var buff = context.Buffs.AsQueryable()
                     .Where(t => t.GuildId == Context.Guild.Id)
                     .Where(t => t.Type == type && t.Time == time)
                     .FirstOrDefault();
 
-                if(match != null){
-                    NotificationService.CancelNotification(match.JobId);
-                    var update  = $"{_icons[match.Type]} {match.Type} that was planned for {match.Time.ToString("dddd")} at {match.Time.ToString("HH:mm")} has been cancelled by <@{Context.User.Id}>.";
-                    NotificationService.PushNotification(match.GuildId, update);
-                    context.Remove(match);
+                if(buff != null){
+                    var update  = $"{_icons[buff.Type]} {buff.Type} that was planned for {buff.Time.ToString("dddd")} at {buff.Time.ToString("HH:mm")} has been cancelled by <@{Context.User.Id}>.";
+                    await MakeNotification(context, buff.GuildId, update);
+                    context.Remove(buff);
                     await context.SaveChangesAsync();
                     await ReplyAsync(GetBuffPost(context, Context.Guild.Id));
                 }
+            }
+        }
+
+        private async Task MakeNotification(TuckContext context, ulong guildId, string msg) {
+            var subscriptions = context.Subscriptions.AsQueryable()
+                    .Where(s => s.TargetGuildId == guildId)
+                    .ToList();
+
+            Console.WriteLine($"Now notifying. ({msg})");
+            foreach(var subscription in subscriptions) {
+                var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
+                await channel.SendMessageAsync(msg);
             }
         }
 

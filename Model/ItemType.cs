@@ -9,11 +9,11 @@ namespace Tuck.Model
 {
     public enum ItemType
     {
-        Woolbandage,
+        WoolBandage,
         TinBar,
         ThickLeather,
         SpottedYellowtail,
-        Runecloth,
+        RuneclothBandage,
         RuggedLeather,
         PurpleLotus,
         Peacebloom,
@@ -22,6 +22,7 @@ namespace Tuck.Model
         HeavyLeather,
         Firebloom,
         CopperBar,
-        BakedSalmon
+        BakedSalmon,
+        LeanWolfSteak
     }
 }   

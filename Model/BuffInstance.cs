@@ -13,7 +13,6 @@ namespace Tuck.Model
         public ulong UserId { get; set; }
         public string Username { get; set; }
         public ulong GuildId { get; set; }
-        public string JobId { get; set; }
         public DateTime Time { get; set; }
         public BuffType Type { get; set; }
     }

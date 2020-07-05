@@ -5,9 +5,6 @@ using System.Text.RegularExpressions;
 using Discord.Commands;
 using Tuck.Model;
 using System.Collections.Generic;
-using Discord;
-using Hangfire;
-using Tuck.Services;
 
 namespace Tuck.Modules
 {
@@ -15,11 +12,11 @@ namespace Tuck.Modules
     public class WarEffortModule : ModuleBase<SocketCommandContext>
     {
         private static Dictionary<ItemType, string> _icons = new Dictionary<ItemType, string> {
-            {ItemType.Woolbandage,"<:Woolbandage:727629457166172271>"},
+            {ItemType.WoolBandage,"<:Woolbandage:727629457166172271>"},
             {ItemType.TinBar,"<:Tinbar:727628410473545749>"},
             {ItemType.ThickLeather,"<:Thickleather:727627987834634420>"},
             {ItemType.SpottedYellowtail,"<:SpottedYellowtail:727628079584903228>"},
-            {ItemType.Runecloth,"<:Runecloth:727628181300838460>"},
+            {ItemType.RuneclothBandage,"<:Runecloth:727628181300838460>"},
             {ItemType.RuggedLeather,"<:Ruggedleather:727629141410709545>"},
             {ItemType.PurpleLotus,"<:PurpleLotus:727627871744688180>"},
             {ItemType.Peacebloom,"<:Peacebloom:727628699146387506>"},
@@ -28,15 +25,16 @@ namespace Tuck.Modules
             {ItemType.HeavyLeather,"<:Heavyleather:727628970320986247>"},
             {ItemType.Firebloom,"<:Firebloom:727628840804810763>"},
             {ItemType.CopperBar,"<:Copperbar:727627789276020776>"},
-            {ItemType.BakedSalmon,"<:Bakedsalmon:727629381324898314>"}
+            {ItemType.BakedSalmon,"<:Bakedsalmon:727629381324898314>"},
+            {ItemType.LeanWolfSteak,"<:LeanWolfSteak:727629243164393504>"}
         };
 
         private static Dictionary<ItemType, string> _names = new Dictionary<ItemType, string> {
-            {ItemType.Woolbandage,"Wool Bandage"},
+            {ItemType.WoolBandage,"Wool Bandage"},
             {ItemType.TinBar,"Tin Bar"},
             {ItemType.ThickLeather,"Thick Leather"},
             {ItemType.SpottedYellowtail,"Spotted Yellowtail"},
-            {ItemType.Runecloth,"Runecloth"},
+            {ItemType.RuneclothBandage,"Runecloth Bandage"},
             {ItemType.RuggedLeather,"Rugged Leather"},
             {ItemType.PurpleLotus,"Purple Lotus"},
             {ItemType.Peacebloom,"Peacebloom"},
@@ -45,7 +43,8 @@ namespace Tuck.Modules
             {ItemType.HeavyLeather,"Heavy Leather"},
             {ItemType.Firebloom,"Firebloom"},
             {ItemType.CopperBar,"Copper Bar"},
-            {ItemType.BakedSalmon,"Baked Salmon"}
+            {ItemType.BakedSalmon,"Baked Salmon"},
+            {ItemType.LeanWolfSteak,"Lean Wolf Steak"}
         };
 
         [Command("help")]
@@ -61,13 +60,13 @@ namespace Tuck.Modules
                     .Select(t => $"\n> {t.ToString()}")
                     .Aggregate("", (s1,s2) => s1 + s2);
 
-                await channel.SendMessageAsync($"Hi {Context.User.Username}!\nI'm here to help with tallying up materials for the wareffort. You can register your contribution to the war effort by writing !weffort [item] [amount].\n\nI support the following types: {types}");
+                await channel.SendMessageAsync($"Hi {Context.User.Username}!\nI'm here to help with tallying up materials for the wareffort. You can register your contribution to the war effort by writing !weffort add [item] [amount].\n\nI support the following types: {types}");
             }
         }
 
-        [Command("contribute")]
+        [Command("add")]
         [RequireContext(ContextType.Guild)]
-        public async Task Contribute(ItemType itemType, uint amount) {
+        public async Task AddContribution(ItemType itemType, uint amount) {
             using(var context = new TuckContext()) {
 
                 var user = Context.Guild.GetUser(Context.User.Id);
@@ -77,9 +76,49 @@ namespace Tuck.Modules
                     .Where(s => s.GuildId == guild.Id && s.UserId == user.Id && s.ItemType == itemType)
                     .FirstOrDefault();
 
-                if(contribution == null)    await CreateContribution(context, user, guild, itemType, amount);
-                else                        await UpdateContribution(context, contribution, amount);
+                if (contribution == null){
+                    await CreateContribution(context, user, guild, itemType, amount);
+                } else {
+                    await UpdateContribution(context, contribution, contribution.Amount + amount);
+                }
+            }
+        }
 
+        [Command("remove")]
+        [RequireContext(ContextType.Guild)]
+        public async Task UpdateContribution(ItemType itemType, uint amount) {
+            using(var context = new TuckContext()) {
+
+                var user = Context.Guild.GetUser(Context.User.Id);
+                var guild = Context.Guild;
+
+                var contribution = context.Contributions.AsQueryable()
+                    .Where(s => s.GuildId == guild.Id && s.UserId == user.Id && s.ItemType == itemType)
+                    .FirstOrDefault();
+
+                if (contribution != null && contribution.Amount > amount) {
+                    await UpdateContribution(context, contribution, contribution.Amount - amount);
+                } else if (contribution != null) {
+                    await RemoveContribution(context, contribution);
+                }
+            }
+        }
+
+        [Command("remove")]
+        [RequireContext(ContextType.Guild)]
+        public async Task RemoveContribution(ItemType itemType) {
+            using(var context = new TuckContext()) {
+
+                var user = Context.Guild.GetUser(Context.User.Id);
+                var guild = Context.Guild;
+
+                var contribution = context.Contributions.AsQueryable()
+                    .Where(s => s.GuildId == guild.Id && s.UserId == user.Id && s.ItemType == itemType)
+                    .FirstOrDefault();
+
+                if(contribution != null) {
+                    await RemoveContribution(context, contribution);
+                }
             }
         }
 
@@ -104,7 +143,8 @@ namespace Tuck.Modules
             }
         }
 
-        [Command("overview guild detailed")]
+        [Command("overview detailed")]
+        [Alias("overview guild detailed")]
         [RequireContext(ContextType.Guild)]
         public async Task OverviewGuildDetailed() {
             using(var context = new TuckContext()) {
@@ -176,11 +216,22 @@ namespace Tuck.Modules
 
         }
 
-        public async Task UpdateContribution(TuckContext context, WarEffortContribution existing, uint amount) {
+        private async Task UpdateContribution(TuckContext context, WarEffortContribution existing, uint amount) {
             existing.Amount = amount;
             context.Update(existing);
             await context.SaveChangesAsync();
             await ReplyAsync($"{_icons[existing.ItemType]} Your contribution has been updated to {amount} x {_names[existing.ItemType]}");
         }
+
+        private async Task RemoveContribution(TuckContext context, WarEffortContribution existing) {
+            context.Remove(existing);
+            await context.SaveChangesAsync();
+            await ReplyAsync($"{_icons[existing.ItemType]} Your contribution of {_names[existing.ItemType]} has been removed");
+        }
+
+        private uint Positive(int integer) {
+            return integer > 0 ? (uint) integer : 0;
+        }
+
     }
 }   
