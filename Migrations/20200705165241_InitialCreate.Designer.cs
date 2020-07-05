@@ -9,8 +9,8 @@ using Tuck;
 namespace Tuck.Migrations
 {
     [DbContext(typeof(TuckContext))]
-    [Migration("20200625214806_RemovedCustomEmotes")]
-    partial class RemovedCustomEmotes
+    [Migration("20200705165241_InitialCreate")]
+    partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -65,6 +65,32 @@ namespace Tuck.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Subscriptions");
+                });
+
+            modelBuilder.Entity("Tuck.Model.WarEffortContribution", b =>
+                {
+                    b.Property<ulong>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<uint>("Amount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong>("GuildId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ItemType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Username")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Contributions");
                 });
 #pragma warning restore 612, 618
         }
