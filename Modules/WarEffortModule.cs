@@ -47,6 +47,24 @@ namespace Tuck.Modules
             {ItemType.LeanWolfSteak,"Lean Wolf Steak"}
         };
 
+        private static Dictionary<ItemType, uint> _quotas = new Dictionary<ItemType, uint> {
+            {ItemType.WoolBandage, 250000},
+            {ItemType.TinBar, 22000},
+            {ItemType.ThickLeather, 80000},
+            {ItemType.SpottedYellowtail, 17000},
+            {ItemType.RuneclothBandage, 400000},
+            {ItemType.RuggedLeather, 60000},
+            {ItemType.PurpleLotus, 26000},
+            {ItemType.Peacebloom, 96000},
+            {ItemType.MithrilBar, 18000},
+            {ItemType.MageweaveBandage, 250000},
+            {ItemType.HeavyLeather, 60000},
+            {ItemType.Firebloom, 19000},
+            {ItemType.CopperBar, 90000},
+            {ItemType.BakedSalmon, 10000},
+            {ItemType.LeanWolfSteak, 10000}
+        };
+
         [Command("help")]
         [RequireContext(ContextType.Guild)]
         public async Task Help() {
@@ -127,19 +145,27 @@ namespace Tuck.Modules
         [RequireContext(ContextType.Guild)]
         public async Task OverviewGuild() {
             using(var context = new TuckContext()) {
+                await ReplyAsync("**War effort contributions:**");
+                await PostGuildOverview(context, Context.Guild.Id);
+            }
+        }
 
-                var user = Context.Guild.GetUser(Context.User.Id);
-                var guild = Context.Guild;
+        private async Task PostGuildOverview(TuckContext context, ulong guildId) {
+            var contributions = context.Contributions.AsQueryable()
+                .Where(s => s.GuildId == guildId)
+                .ToList()
+                .GroupBy(t => t.ItemType)
+                .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
 
-                var contributions = context.Contributions.AsQueryable()
-                    .Where(s => s.GuildId == guild.Id)
-                    .ToList()
-                    .GroupBy(t => t.ItemType)
-                    .Select(t => $"\n> {_icons[t.Key]} {_names[t.Key]} x {t.Sum(e => e.Amount)}")
-                    .Aggregate("", (s1,s2) => s1 + s2);
+            foreach(var type in (ItemType[]) Enum.GetValues(typeof(ItemType))) {
+                
+                var icon = _icons[type];
+                var name = _names[type];
+                var quota = _quotas[type];
+                var sum = contributions.GetValueOrDefault(type);
+                var progress = (decimal) sum / quota;
 
-                await ReplyAsync("**War effort contributions:**" + 
-                    (string.IsNullOrEmpty(contributions) ? "\n> Nothing have been added yet..." : contributions));
+                await ReplyAsync($"> {icon} {name}: {sum} / {quota} = {String.Format("{0:00.00}", progress)}%");
             }
         }
 
@@ -148,37 +174,58 @@ namespace Tuck.Modules
         [RequireContext(ContextType.Guild)]
         public async Task OverviewGuildDetailed() {
             using(var context = new TuckContext()) {
+                await ReplyAsync("**War effort contributions:**");
+                await PostGuildOverviewDetailed(context, Context.Guild.Id);
+            }
+        }
 
-                var msg = "";
-                foreach(var group in context.Contributions.ToList().GroupBy(t => t.Username)) {
-                    var contributions = group
-                        .GroupBy(t => t.ItemType)
-                        .Select(t => $"\n> {_icons[t.Key]} {_names[t.Key]} x {t.Sum(e => e.Amount)}")
-                        .Aggregate("", (s1,s2) => s1 + s2);
-                    msg += $"\n\n__{group.Key}__{contributions}";
+        private async Task PostGuildOverviewDetailed(TuckContext context, ulong guildId) {
+
+            var users = context.Contributions.AsQueryable()
+                .Where(s => s.GuildId == guildId)
+                .ToList()
+                .GroupBy(t => t.Username);
+
+            foreach(var user in users) {
+
+                var contributions = user
+                    .GroupBy(t => t.ItemType)
+                    .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
+
+                await ReplyAsync($"__{user.Key}__");
+                foreach(var type in contributions) {
+                    var icon = _icons[type.Key];
+                    var name = _names[type.Key];
+                    var sum = type.Value;
+                    await ReplyAsync($"> {icon} {name}: {sum}");
                 }
-
-                await ReplyAsync("**War effort contributions:**" + 
-                    (string.IsNullOrEmpty(msg) ? "\n> Nothing have been added yet..." : msg));
             }
         }
 
         [Command("overview server")]
         [RequireContext(ContextType.Guild)]
         public async Task OverviewServer() {
-            using(var context = new TuckContext()) {
+          using(var context = new TuckContext()) {
+                await ReplyAsync("**War effort contributions:**");
+                await PostServerOverview(context);
+            }
+        }
 
-                var user = Context.Guild.GetUser(Context.User.Id);
-                var guild = Context.Guild;
+        private async Task PostServerOverview(TuckContext context) {
+            var contributions = context.Contributions.AsQueryable()
+                .ToList()
+                .GroupBy(t => t.ItemType)
+                .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
 
-                var contributions = context.Contributions
-                    .ToList()
-                    .GroupBy(t => t.ItemType)
-                    .Select(t => $"\n> {_icons[t.Key]} {_names[t.Key]} x {t.Sum(e => e.Amount)}")
-                    .Aggregate("", (s1,s2) => s1 + s2);
+            foreach(var type in (ItemType[]) Enum.GetValues(typeof(ItemType))) {
+                
+                var icon = _icons[type];
+                var name = _names[type];
+                var quota = _quotas[type];
+                var sum = contributions.GetValueOrDefault(type);
+                var progress = sum/quota;
 
-                await ReplyAsync("**War effort contributions:**" + 
-                    (string.IsNullOrEmpty(contributions) ? "\n> Nothing have been added yet..." : contributions));
+                await ReplyAsync($"> {icon} {name}: {sum} / {quota} = {String.Format("{0:00.00}", progress)}%");
             }
         }
 
@@ -186,19 +233,30 @@ namespace Tuck.Modules
         [RequireContext(ContextType.Guild)]
         public async Task OverviewServerDetailed() {
             using(var context = new TuckContext()) {
+                await ReplyAsync("**War effort contributions:**");
+                await PostServerOverviewDetailed(context);
+            }
+        }
 
-                var msg = "";
-                foreach(var group in context.Contributions.ToList().GroupBy(t => t.GuildId)) {
-                    var guild = Context.Client.GetGuild(group.Key);
-                    var contributions = group
-                        .GroupBy(t => t.ItemType)
-                        .Select(t => $"\n> {_icons[t.Key]} {_names[t.Key]} x {t.Sum(e => e.Amount)}")
-                        .Aggregate("", (s1,s2) => s1 + s2);
-                    msg += $"\n\n__{guild.Name}__{contributions}";
+        private async Task PostServerOverviewDetailed(TuckContext context) {
+
+            var guilds = context.Contributions.AsQueryable()
+                .ToList()
+                .GroupBy(t => t.GuildId);
+
+            foreach(var guild in guilds) {
+
+                var contributions = guild
+                    .GroupBy(t => t.ItemType)
+                    .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
+
+                await ReplyAsync($"__{Context.Client.GetGuild(guild.Key).Name}__");
+                foreach(var type in contributions) {
+                    var icon = _icons[type.Key];
+                    var name = _names[type.Key];
+                    var sum = type.Value;
+                    await ReplyAsync($"> {icon} {name}: {sum}");
                 }
-
-                await ReplyAsync("**War effort contributions:**" + 
-                    (string.IsNullOrEmpty(msg) ? "\n> Nothing have been added yet..." : msg));
             }
         }
 
