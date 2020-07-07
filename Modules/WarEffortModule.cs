@@ -157,16 +157,17 @@ namespace Tuck.Modules
                 .GroupBy(t => t.ItemType)
                 .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
 
-            foreach(var type in (ItemType[]) Enum.GetValues(typeof(ItemType))) {
-                
+            var msg = "";
+            foreach(var type in (ItemType[]) Enum.GetValues(typeof(ItemType))) {  
                 var icon = _icons[type];
                 var name = _names[type];
                 var quota = _quotas[type];
                 var sum = contributions.GetValueOrDefault(type);
                 var progress = (decimal) sum / quota;
-
-                await ReplyAsync($"> {icon} {name}: {sum} / {quota} = {String.Format("{0:00.00}", progress)}%");
+                msg += $"\n> {icon} {name}: {sum} / {quota} = {String.Format("{0:00.00}", progress)}%";
             }
+            await ReplyAsync(msg);
+
         }
 
         [Command("overview detailed")]
@@ -192,13 +193,14 @@ namespace Tuck.Modules
                     .GroupBy(t => t.ItemType)
                     .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
 
-                await ReplyAsync($"__{user.Key}__");
+                var msg = $"__{user.Key}__";
                 foreach(var type in contributions) {
                     var icon = _icons[type.Key];
                     var name = _names[type.Key];
                     var sum = type.Value;
-                    await ReplyAsync($"> {icon} {name}: {sum}");
+                    msg += $"\n> {icon} {name}: {sum}";
                 }
+                await ReplyAsync(msg);
             }
         }
 
@@ -217,16 +219,16 @@ namespace Tuck.Modules
                 .GroupBy(t => t.ItemType)
                 .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
 
+            var msg = "";
             foreach(var type in (ItemType[]) Enum.GetValues(typeof(ItemType))) {
-                
                 var icon = _icons[type];
                 var name = _names[type];
                 var quota = _quotas[type];
                 var sum = contributions.GetValueOrDefault(type);
-                var progress = sum/quota;
-
-                await ReplyAsync($"> {icon} {name}: {sum} / {quota} = {String.Format("{0:00.00}", progress)}%");
+                var progress = (decimal) sum / quota;
+                msg += $"> {icon} {name}: {sum} / {quota} = {String.Format("{0:00.00}", progress)}%";
             }
+            await ReplyAsync(msg);
         }
 
         [Command("overview server detailed")]
@@ -250,13 +252,14 @@ namespace Tuck.Modules
                     .GroupBy(t => t.ItemType)
                     .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
 
-                await ReplyAsync($"__{Context.Client.GetGuild(guild.Key).Name}__");
+                var msg = $"__{Context.Client.GetGuild(guild.Key).Name}__";
                 foreach(var type in contributions) {
                     var icon = _icons[type.Key];
                     var name = _names[type.Key];
                     var sum = type.Value;
-                    await ReplyAsync($"> {icon} {name}: {sum}");
+                    msg += $"\n> {icon} {name}: {sum}";
                 }
+                await ReplyAsync(msg);
             }
         }
 
