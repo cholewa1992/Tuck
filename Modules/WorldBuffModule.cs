@@ -139,8 +139,8 @@ namespace Tuck.Modules
                     var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
                     await channel.SendMessageAsync(msg);
                 } catch (Exception e) {
-                    var guild = Context.Client.GetGuild(guildId);
-                    Console.WriteLine($"Notification for guildId={guildId}, guildName={guild.Name}, owner={guild.OwnerId} failed.");
+                    var guild = Context.Client.GetGuild(subscription.GuildId);
+                    Console.WriteLine($"Notification for guildId={subscription.GuildId}, guildName={guild.Name}, owner={guild.OwnerId} failed.");
                     Console.WriteLine(e.Message);
                 }
             }
