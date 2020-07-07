@@ -164,7 +164,7 @@ namespace Tuck.Modules
                 var quota = _quotas[type];
                 var sum = contributions.GetValueOrDefault(type);
                 var progress = (decimal) sum / quota;
-                msg += $"\n> {icon} {name}: {sum} / {quota} = {String.Format("{0:00.00}", progress)}%";
+                msg += $"\n> {icon} {name}: {sum} / {quota} = {String.Format("{0:0.000}", progress)}%";
             }
             await ReplyAsync(msg);
 
@@ -226,7 +226,7 @@ namespace Tuck.Modules
                 var quota = _quotas[type];
                 var sum = contributions.GetValueOrDefault(type);
                 var progress = (decimal) sum / quota;
-                msg += $"> {icon} {name}: {sum} / {quota} = {String.Format("{0:00.00}", progress)}%";
+                msg += $"\n> {icon} {name}: {sum} / {quota} = {String.Format("{0:0.000}", progress)}%";
             }
             await ReplyAsync(msg);
         }
