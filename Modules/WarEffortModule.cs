@@ -16,7 +16,7 @@ namespace Tuck.Modules
             {ItemType.TinBar,"<:Tinbar:727628410473545749>"},
             {ItemType.ThickLeather,"<:Thickleather:727627987834634420>"},
             {ItemType.SpottedYellowtail,"<:SpottedYellowtail:727628079584903228>"},
-            {ItemType.RuneclothBandage,"<:Runecloth:727628181300838460>"},
+            {ItemType.RuneclothBandage,"<:Runeclothbandage:727910336409108510>"},
             {ItemType.RuggedLeather,"<:Ruggedleather:727629141410709545>"},
             {ItemType.PurpleLotus,"<:PurpleLotus:727627871744688180>"},
             {ItemType.Peacebloom,"<:Peacebloom:727628699146387506>"},
