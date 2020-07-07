@@ -164,7 +164,7 @@ namespace Tuck.Modules
                 var quota = _quotas[type];
                 var sum = contributions.GetValueOrDefault(type);
                 var progress = (decimal) sum / quota;
-                msg += $"\n> {icon} {name}: {sum} / {quota} = {String.Format("{0:0.000}", progress)}%";
+                msg += $"\n> {icon} {name}: {sum:N} / {quota:N} = {progress:P3}";
             }
             await ReplyAsync(msg);
 
@@ -198,7 +198,7 @@ namespace Tuck.Modules
                     var icon = _icons[type.Key];
                     var name = _names[type.Key];
                     var sum = type.Value;
-                    msg += $"\n> {icon} {name}: {sum}";
+                    msg += $"\n> {icon} {name}: {sum:N}";
                 }
                 await ReplyAsync(msg);
             }
@@ -226,7 +226,7 @@ namespace Tuck.Modules
                 var quota = _quotas[type];
                 var sum = contributions.GetValueOrDefault(type);
                 var progress = (decimal) sum / quota;
-                msg += $"\n> {icon} {name}: {sum} / {quota} = {String.Format("{0:0.000}", progress)}%";
+                msg += $"\n> {icon} {name}: {sum:N} / {quota:N} = {progress:P3}";
             }
             await ReplyAsync(msg);
         }
@@ -257,7 +257,7 @@ namespace Tuck.Modules
                     var icon = _icons[type.Key];
                     var name = _names[type.Key];
                     var sum = type.Value;
-                    msg += $"\n> {icon} {name}: {sum}";
+                    msg += $"\n> {icon} {name}: {sum:N}";
                 }
                 await ReplyAsync(msg);
             }
@@ -273,7 +273,7 @@ namespace Tuck.Modules
             };
             await context.AddAsync(contribution);
             await context.SaveChangesAsync();
-            await ReplyAsync($"{_icons[itemType]} Your contribution of {amount} x {_names[itemType]} have been registered");
+            await ReplyAsync($"{_icons[itemType]} Your contribution of {amount:N} x {_names[itemType]} have been registered");
 
         }
 
@@ -281,7 +281,7 @@ namespace Tuck.Modules
             existing.Amount = amount;
             context.Update(existing);
             await context.SaveChangesAsync();
-            await ReplyAsync($"{_icons[existing.ItemType]} Your contribution has been updated to {amount} x {_names[existing.ItemType]}");
+            await ReplyAsync($"{_icons[existing.ItemType]} Your contribution has been updated to {amount:N} x {_names[existing.ItemType]}");
         }
 
         private async Task RemoveContribution(TuckContext context, WarEffortContribution existing) {
