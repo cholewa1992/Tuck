@@ -134,10 +134,15 @@ namespace Tuck.Modules
                     .Where(s => s.TargetGuildId == guildId)
                     .ToList();
 
-            Console.WriteLine($"Now notifying. ({msg})");
             foreach(var subscription in subscriptions) {
-                var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
-                await channel.SendMessageAsync(msg);
+                try{
+                    var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
+                    await channel.SendMessageAsync(msg);
+                } catch (Exception e) {
+                    var guild = Context.Client.GetGuild(guildId);
+                    Console.WriteLine($"Notification for guildId={guildId}, guildName={guild.Name}, owner={guild.OwnerId} failed.");
+                    Console.WriteLine(e.Message);
+                }
             }
         }
 
