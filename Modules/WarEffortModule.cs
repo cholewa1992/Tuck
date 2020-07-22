@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Discord.Commands;
 using Tuck.Model;
 using System.Collections.Generic;
+using Discord;
 
 namespace Tuck.Modules
 {
