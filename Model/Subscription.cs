@@ -12,6 +12,7 @@ namespace Tuck.Model
         public ulong Id { get; set; }
         public ulong GuildId { get; set; }
         public ulong ChannelId { get; set; }
+        public ulong? LastMessage { get; set; }
         public ulong TargetGuildId { get; set; }
     }
 }   

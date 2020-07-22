@@ -6,6 +6,8 @@ using Discord.Commands;
 using Tuck.Model;
 using System.Collections.Generic;
 using Discord.WebSocket;
+using Discord;
+using Discord.Rest;
 
 namespace Tuck.Modules
 {
@@ -34,7 +36,14 @@ namespace Tuck.Modules
                     .Where(s => s.GuildId == Context.Guild.Id)
                     .FirstOrDefault();
 
-                await ReplyAsync(GetBuffPost(context, subscription?.TargetGuildId ?? Context.Guild.Id));
+                var embed = GetBuffPost(context, subscription?.TargetGuildId ?? Context.Guild.Id);
+                var msg  = await ReplyAsync("", false, embed);
+
+                if(subscription != null && Context.Channel.Id == subscription.ChannelId) { 
+                    subscription.LastMessage = msg.Id;
+                    context.Update(subscription);
+                    await context.SaveChangesAsync();
+                }
             }
         }
 
@@ -100,13 +109,10 @@ namespace Tuck.Modules
                 // Saving the buff instance
                 await context.AddAsync(buff);
                 await context.SaveChangesAsync();
+                await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
 
                 // Posting an update message in all subscribing channels
-                var update  = $"{_icons[buff.Type]} {buff.Type} will be popped {buff.Time.ToString("dddd")} at {buff.Time.ToString("HH:mm")} by {buff.Username} (Added by <@{buff.UserId}>).";
-                await MakeNotification(context, buff.GuildId, update);
-
-                // Posting the updated schedule in this channel
-                await ReplyAsync(GetBuffPost(context, buff.GuildId));
+                await MakeNotification(context, buff.GuildId, GetBuffPost(context, buff.GuildId));
             }
         }
 
@@ -120,24 +126,25 @@ namespace Tuck.Modules
                     .FirstOrDefault();
 
                 if(buff != null){
-                    var update  = $"{_icons[buff.Type]} {buff.Type} that was planned for {buff.Time.ToString("dddd")} at {buff.Time.ToString("HH:mm")} has been cancelled by <@{Context.User.Id}>.";
-                    await MakeNotification(context, buff.GuildId, update);
                     context.Remove(buff);
                     await context.SaveChangesAsync();
-                    await ReplyAsync(GetBuffPost(context, Context.Guild.Id));
+                    await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
+
+                    // Posting an update message in all subscribing channels
+                    await MakeNotification(context, buff.GuildId, GetBuffPost(context, Context.Guild.Id));
                 }
             }
         }
 
-        private async Task MakeNotification(TuckContext context, ulong guildId, string msg) {
+        private async Task MakeNotification(TuckContext context, ulong guildId, Embed embed) {
             var subscriptions = context.Subscriptions.AsQueryable()
                     .Where(s => s.TargetGuildId == guildId)
                     .ToList();
 
             foreach(var subscription in subscriptions) {
                 try{
-                    var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
-                    await channel.SendMessageAsync(msg);
+                    if(subscription.LastMessage == null) await PostMessage(context, subscription, embed);
+                    else await UpdateMessage(context, subscription, embed);
                 } catch (Exception e) {
                     var guild = Context.Client.GetGuild(subscription.GuildId);
                     Console.WriteLine($"Notification for guildId={subscription.GuildId}, guildName={guild.Name}, owner={guild.OwnerId} failed.");
@@ -146,16 +153,61 @@ namespace Tuck.Modules
             }
         }
 
-        private string GetBuffPost(TuckContext context, ulong guildId) {
-            var buffs = context.Buffs.AsQueryable()
-                .Where(t => t.GuildId == guildId && DateTime.Now < t.Time)
-                .OrderBy(t => t.Time).ThenBy(t => t.Type)
-                .ToList()
-                .Select(t => $"\n> {_icons[t.Type]} {t.Time.ToString("HH:mm")} by {t.Username}")
-                .Aggregate("", (s1,s2) => s1 + s2);
+        private async Task UpdateMessage(TuckContext context, Subscription subscription, Embed embed) {
+            var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
+            var message = await channel.GetMessageAsync(subscription.LastMessage.Value) as RestUserMessage;
+            await message.ModifyAsync(msg => msg.Embed = embed);
+        }
 
-            return "**World buff schedule:**" + 
-                (string.IsNullOrEmpty(buffs) ? "\n> Nothing have been added yet..." : buffs);
+        private async Task PostMessage(TuckContext context, Subscription subscription, Embed embed) {
+            var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
+            var message = await channel.SendMessageAsync("", false, embed);
+            subscription.LastMessage = message.Id;
+            context.Update(subscription);
+            await context.SaveChangesAsync();
+        }
+
+        private Embed GetBuffPost(TuckContext context, ulong guildId) {
+            var guild = Context.Client.GetGuild(guildId);
+            return new EmbedBuilder ()
+                .WithAuthor("World buff schedule", guild?.IconUrl)
+                .AddField(GetBuffsToday(context, guildId))
+                .AddField(GetBuffsTomorrow(context, guildId))
+                .AddField("\u200B", "The world boss schedule is moderated by the guild masters and officers of Dreadmist. To queue a buff, reach our to one of the officers in your guild and have them add it in the global discord channel.\u200B")
+                .WithFooter("Last updated")
+                .WithCurrentTimestamp()
+                .Build();
+        }
+
+        private EmbedFieldBuilder GetBuffsToday(TuckContext context, ulong guildId) {
+            var buffs = context.Buffs.AsQueryable()
+                .Where(t => t.GuildId == guildId && DateTime.Today == t.Time.Date)
+                .OrderBy(t => t.Time).ThenBy(t => t.Type)
+                .ToList();
+            return new EmbedFieldBuilder {
+                Name = "Today",
+                Value = GetBuffsAsString(buffs),
+                IsInline = true
+            };
+        }
+
+        private EmbedFieldBuilder GetBuffsTomorrow(TuckContext context, ulong guildId) {
+            var buffs = context.Buffs.AsQueryable()
+                .Where(t => t.GuildId == guildId && DateTime.Today.AddDays(1) == t.Time.Date)
+                .OrderBy(t => t.Time).ThenBy(t => t.Type)
+                .ToList();
+            return new EmbedFieldBuilder {
+                Name = "Tomorrow",
+                Value = GetBuffsAsString(buffs),
+                IsInline = true
+            };
+        }
+
+        private string GetBuffsAsString(IEnumerable<BuffInstance> buffs) {
+            var buffMsg = buffs
+                .Select(t => $"> {_icons[t.Type]} {t.Time.ToString("HH:mm")} by {t.Username}")
+                .Aggregate("", (s1,s2) => s1 + "\n" + s2);
+            return string.IsNullOrEmpty(buffMsg) ? "> Noting added" : buffMsg;
         }
     }
 }   
