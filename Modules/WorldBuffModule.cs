@@ -66,7 +66,7 @@ namespace Tuck.Modules
             using(var context = new TuckContext()) {
 
                 var subscription = context.Subscriptions.AsQueryable()
-                    .Where(s => s.GuildId == Context.Guild.Id)
+                    .Where(s => s.GuildId == Context.Guild.Id && s.TargetGuildId != s.GuildId)
                     .Any();
 
                 if(subscription) {
