@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Tuck;
@@ -10,6 +11,15 @@ namespace Brothers.Modules
 {
     public class AdminModule : ModuleBase<SocketCommandContext>
     {
+
+        [Command("ping")]
+        public async Task Ping() {
+            var msg = await ReplyAsync("If you see this, then I'm missing edit message right");
+            await msg.ModifyAsync(msg => msg.Content = "pong!");
+            var emoji = new Emoji("\uD83D\uDC4C");
+            await msg.AddReactionAsync(emoji);
+        }
+
         [Command("relay")]
         public async Task Relay(ulong channelId, [Remainder] string msg) {
             if(Context.User.Id == 103492791069327360) {

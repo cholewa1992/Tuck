@@ -169,45 +169,43 @@ namespace Tuck.Modules
 
         private Embed GetBuffPost(TuckContext context, ulong guildId) {
             var guild = Context.Client.GetGuild(guildId);
-            return new EmbedBuilder ()
+            var builder = new EmbedBuilder ()
                 .WithAuthor("World buff schedule", guild?.IconUrl)
-                .AddField(GetBuffsToday(context, guildId))
-                .AddField(GetBuffsTomorrow(context, guildId))
-                .AddField("\u200B", "The world boss schedule is moderated by the guild masters and officers of Dreadmist. To queue a buff, reach our to one of the officers in your guild and have them add it in the global discord channel.\u200B")
                 .WithFooter("Last updated")
-                .WithCurrentTimestamp()
-                .Build();
+                .WithCurrentTimestamp();
+
+            var today = GetBuffsToday(context, guildId);
+            builder.AddField($"{DateTime.Today:dddd}", GetBuffsAsString(today));
+
+            var tomorrow = GetBuffsTomorrow(context, guildId);
+            if(tomorrow.Count() != 0) {
+                builder.AddField($"{DateTime.Today.AddDays(1):dddd}", GetBuffsAsString(tomorrow));
+            }
+
+            builder.AddField("\u200B", "The world boss schedule is moderated by the guild masters and officers of Dreadmist. To queue a buff, reach out to one of the officers in your guild and have them add it in the global discord channel.\u200B");
+
+            return builder.Build();
         }
 
-        private EmbedFieldBuilder GetBuffsToday(TuckContext context, ulong guildId) {
-            var buffs = context.Buffs.AsQueryable()
+        private List<BuffInstance> GetBuffsToday(TuckContext context, ulong guildId) {
+            return context.Buffs.AsQueryable()
                 .Where(t => t.GuildId == guildId && DateTime.Today == t.Time.Date)
                 .OrderBy(t => t.Time).ThenBy(t => t.Type)
                 .ToList();
-            return new EmbedFieldBuilder {
-                Name = "Today",
-                Value = GetBuffsAsString(buffs),
-                IsInline = true
-            };
         }
 
-        private EmbedFieldBuilder GetBuffsTomorrow(TuckContext context, ulong guildId) {
-            var buffs = context.Buffs.AsQueryable()
+        private List<BuffInstance> GetBuffsTomorrow(TuckContext context, ulong guildId) {
+            return context.Buffs.AsQueryable()
                 .Where(t => t.GuildId == guildId && DateTime.Today.AddDays(1) == t.Time.Date)
                 .OrderBy(t => t.Time).ThenBy(t => t.Type)
                 .ToList();
-            return new EmbedFieldBuilder {
-                Name = "Tomorrow",
-                Value = GetBuffsAsString(buffs),
-                IsInline = true
-            };
         }
 
         private string GetBuffsAsString(IEnumerable<BuffInstance> buffs) {
             var buffMsg = buffs
                 .Select(t => $"> {_icons[t.Type]} {t.Time.ToString("HH:mm")} by {t.Username}")
                 .Aggregate("", (s1,s2) => s1 + "\n" + s2);
-            return string.IsNullOrEmpty(buffMsg) ? "> Noting added" : buffMsg;
+            return string.IsNullOrEmpty(buffMsg) ? "> Nothing added" : buffMsg;
         }
     }
 }   

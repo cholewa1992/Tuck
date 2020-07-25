@@ -6,6 +6,7 @@ using Discord.Commands;
 using Tuck.Model;
 using System.Collections.Generic;
 using Discord;
+using System.IO;
 
 namespace Tuck.Modules
 {
@@ -14,56 +15,56 @@ namespace Tuck.Modules
     {
         private static Dictionary<ItemType, string> _icons = new Dictionary<ItemType, string> {
             {ItemType.WoolBandage,"<:Woolbandage:727629457166172271>"},
-            {ItemType.TinBar,"<:Tinbar:727628410473545749>"},
-            {ItemType.ThickLeather,"<:Thickleather:727627987834634420>"},
-            {ItemType.SpottedYellowtail,"<:SpottedYellowtail:727628079584903228>"},
-            {ItemType.RuneclothBandage,"<:Runeclothbandage:727910336409108510>"},
-            {ItemType.RuggedLeather,"<:Ruggedleather:727629141410709545>"},
-            {ItemType.PurpleLotus,"<:PurpleLotus:727627871744688180>"},
-            {ItemType.Peacebloom,"<:Peacebloom:727628699146387506>"},
-            {ItemType.MithrilBar,"<:Mithrilbar:727628534817751051>"},
             {ItemType.MageweaveBandage,"<:Mageweavebandage:727629746967412778>"},
-            {ItemType.HeavyLeather,"<:Heavyleather:727628970320986247>"},
-            {ItemType.Firebloom,"<:Firebloom:727628840804810763>"},
+            {ItemType.RuneclothBandage,"<:Runeclothbandage:727910336409108510>"},
             {ItemType.CopperBar,"<:Copperbar:727627789276020776>"},
+            {ItemType.TinBar,"<:Tinbar:727628410473545749>"},
+            {ItemType.MithrilBar,"<:Mithrilbar:727628534817751051>"},
+            {ItemType.HeavyLeather,"<:Heavyleather:727628970320986247>"},
+            {ItemType.ThickLeather,"<:Thickleather:727627987834634420>"},
+            {ItemType.RuggedLeather,"<:Ruggedleather:727629141410709545>"},
+            {ItemType.Peacebloom,"<:Peacebloom:727628699146387506>"},
+            {ItemType.PurpleLotus,"<:PurpleLotus:727627871744688180>"},
+            {ItemType.Firebloom,"<:Firebloom:727628840804810763>"},
+            {ItemType.LeanWolfSteak,"<:LeanWolfSteak:727629243164393504>"},
             {ItemType.BakedSalmon,"<:Bakedsalmon:727629381324898314>"},
-            {ItemType.LeanWolfSteak,"<:LeanWolfSteak:727629243164393504>"}
+            {ItemType.SpottedYellowtail,"<:SpottedYellowtail:727628079584903228>"}
         };
 
         private static Dictionary<ItemType, string> _names = new Dictionary<ItemType, string> {
             {ItemType.WoolBandage,"Wool Bandage"},
-            {ItemType.TinBar,"Tin Bar"},
-            {ItemType.ThickLeather,"Thick Leather"},
-            {ItemType.SpottedYellowtail,"Spotted Yellowtail"},
+            {ItemType.MageweaveBandage,"Mageweave Bandage"},
             {ItemType.RuneclothBandage,"Runecloth Bandage"},
+            {ItemType.CopperBar,"Copper Bar"},
+            {ItemType.TinBar,"Tin Bar"},
+            {ItemType.MithrilBar,"Mithril Bar"},
+            {ItemType.HeavyLeather,"Heavy Leather"},
+            {ItemType.ThickLeather,"Thick Leather"},
             {ItemType.RuggedLeather,"Rugged Leather"},
+            {ItemType.Firebloom,"Firebloom"},
             {ItemType.PurpleLotus,"Purple Lotus"},
             {ItemType.Peacebloom,"Peacebloom"},
-            {ItemType.MithrilBar,"Mithril Bar"},
-            {ItemType.MageweaveBandage,"Mageweave Bandage"},
-            {ItemType.HeavyLeather,"Heavy Leather"},
-            {ItemType.Firebloom,"Firebloom"},
-            {ItemType.CopperBar,"Copper Bar"},
+            {ItemType.LeanWolfSteak,"Lean Wolf Steak"},
             {ItemType.BakedSalmon,"Baked Salmon"},
-            {ItemType.LeanWolfSteak,"Lean Wolf Steak"}
+            {ItemType.SpottedYellowtail,"Spotted Yellowtail"}
         };
 
         private static Dictionary<ItemType, uint> _quotas = new Dictionary<ItemType, uint> {
             {ItemType.WoolBandage, 250000},
-            {ItemType.TinBar, 22000},
-            {ItemType.ThickLeather, 80000},
-            {ItemType.SpottedYellowtail, 17000},
-            {ItemType.RuneclothBandage, 400000},
-            {ItemType.RuggedLeather, 60000},
-            {ItemType.PurpleLotus, 26000},
-            {ItemType.Peacebloom, 96000},
-            {ItemType.MithrilBar, 18000},
             {ItemType.MageweaveBandage, 250000},
-            {ItemType.HeavyLeather, 60000},
-            {ItemType.Firebloom, 19000},
+            {ItemType.RuneclothBandage, 400000},
             {ItemType.CopperBar, 90000},
+            {ItemType.TinBar, 22000},
+            {ItemType.MithrilBar, 18000},
+            {ItemType.HeavyLeather, 60000},
+            {ItemType.ThickLeather, 80000},
+            {ItemType.RuggedLeather, 60000},
+            {ItemType.Peacebloom, 96000},
+            {ItemType.PurpleLotus, 26000},
+            {ItemType.Firebloom, 19000},
+            {ItemType.LeanWolfSteak, 10000},
             {ItemType.BakedSalmon, 10000},
-            {ItemType.LeanWolfSteak, 10000}
+            {ItemType.SpottedYellowtail, 17000},
         };
 
         [Command("help")]
@@ -142,66 +143,19 @@ namespace Tuck.Modules
         }
 
         [Command("overview")]
-        [Alias("overview guild")]
         [RequireContext(ContextType.Guild)]
         public async Task OverviewGuild() {
             using(var context = new TuckContext()) {
-                await ReplyAsync("**War effort contributions:**");
-                await PostGuildOverview(context, Context.Guild.Id);
-            }
-        }
-
-        private async Task PostGuildOverview(TuckContext context, ulong guildId) {
-            var contributions = context.Contributions.AsQueryable()
-                .Where(s => s.GuildId == guildId)
-                .ToList()
-                .GroupBy(t => t.ItemType)
-                .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
-
-            var msg = "";
-            foreach(var type in (ItemType[]) Enum.GetValues(typeof(ItemType))) {  
-                var icon = _icons[type];
-                var name = _names[type];
-                var quota = _quotas[type];
-                var sum = contributions.GetValueOrDefault(type);
-                var progress = (decimal) sum / quota;
-                msg += $"\n> {icon} {name}: {sum:N0} / {quota:N0} = {progress:P3}";
-            }
-            await ReplyAsync(msg);
-
-        }
-
-        [Command("overview detailed")]
-        [Alias("overview guild detailed")]
-        [RequireContext(ContextType.Guild)]
-        public async Task OverviewGuildDetailed() {
-            using(var context = new TuckContext()) {
-                await ReplyAsync("**War effort contributions:**");
-                await PostGuildOverviewDetailed(context, Context.Guild.Id);
-            }
-        }
-
-        private async Task PostGuildOverviewDetailed(TuckContext context, ulong guildId) {
-
-            var users = context.Contributions.AsQueryable()
-                .Where(s => s.GuildId == guildId)
-                .ToList()
-                .GroupBy(t => t.Username);
-
-            foreach(var user in users) {
-
-                var contributions = user
+                var contributions = context.Contributions.AsQueryable()
+                    .Where(s => s.GuildId == Context.Guild.Id)
+                    .ToList()
                     .GroupBy(t => t.ItemType)
                     .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
 
-                var msg = $"__{user.Key}__";
-                foreach(var type in contributions) {
-                    var icon = _icons[type.Key];
-                    var name = _names[type.Key];
-                    var sum = type.Value;
-                    msg += $"\n> {icon} {name}: {sum:N0}";
-                }
-                await ReplyAsync(msg);
+                var embed = BuildOverview(contributions)
+                    .WithAuthor($"{Context.Guild.Name} overview", Context.Guild?.IconUrl);
+
+                await ReplyAsync("", false, embed.Build());
             }
         }
 
@@ -209,59 +163,74 @@ namespace Tuck.Modules
         [RequireContext(ContextType.Guild)]
         public async Task OverviewServer() {
           using(var context = new TuckContext()) {
-                await ReplyAsync("**War effort contributions:**");
-                await PostServerOverview(context);
+                var contributions = context.Contributions.AsQueryable()
+                    .ToList()
+                    .GroupBy(t => t.ItemType)
+                    .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
+
+                var embed = BuildOverview(contributions)
+                    .WithAuthor("Server overview", Context.Guild?.IconUrl);
+
+                await ReplyAsync("", false, embed.Build());
             }
         }
 
-        private async Task PostServerOverview(TuckContext context) {
-            var contributions = context.Contributions.AsQueryable()
-                .ToList()
-                .GroupBy(t => t.ItemType)
-                .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
+        private EmbedBuilder BuildOverview(Dictionary<ItemType, long> contributions) {
+            var builder = new EmbedBuilder ()
+                .WithFooter("Last updated")
+                .WithCurrentTimestamp();
 
-            var msg = "";
-            foreach(var type in (ItemType[]) Enum.GetValues(typeof(ItemType))) {
+            var total = 0m;
+            foreach(var type in (ItemType[]) Enum.GetValues(typeof(ItemType))) {  
                 var icon = _icons[type];
                 var name = _names[type];
                 var quota = _quotas[type];
                 var sum = contributions.GetValueOrDefault(type);
                 var progress = (decimal) sum / quota;
-                msg += $"\n> {icon} {name}: {sum:N0} / {quota:N0} = {progress:P3}";
+                total += progress < 1 ? progress : 1; 
+                builder.AddField($"{icon} {name}", $"{sum:N0} / {quota:N0} = {progress:P0}", true);
             }
-            await ReplyAsync(msg);
+
+            builder.AddField($"Total", $"{total/15:P3}");
+            return builder;
         }
 
-        [Command("overview server detailed")]
+        [Command("export")]
+        [RequireContext(ContextType.Guild)]
+        public async Task OverviewDetailed() {
+            using(var context = new TuckContext()) {
+                var contributions = context.Contributions.AsQueryable()
+                    .Where(s => s.GuildId == Context.Guild.Id)
+                    .ToList();
+                await SendCsvFile(contributions);
+            }
+        }
+
+        [Command("export server")]
         [RequireContext(ContextType.Guild)]
         public async Task OverviewServerDetailed() {
             using(var context = new TuckContext()) {
-                await ReplyAsync("**War effort contributions:**");
-                await PostServerOverviewDetailed(context);
+                var contributions = await context.Contributions.ToListAsync();
+                await SendCsvFile(contributions);
             }
         }
 
-        private async Task PostServerOverviewDetailed(TuckContext context) {
+        private async Task SendCsvFile(List<WarEffortContribution> contributions) {
 
-            var guilds = context.Contributions.AsQueryable()
-                .ToList()
-                .GroupBy(t => t.GuildId);
-
-            foreach(var guild in guilds) {
-
-                var contributions = guild
-                    .GroupBy(t => t.ItemType)
-                    .ToDictionary(x => x.Key, x => x.Sum((t => t.Amount)));
-
-                var msg = $"__{Context.Client.GetGuild(guild.Key).Name}__";
-                foreach(var type in contributions) {
-                    var icon = _icons[type.Key];
-                    var name = _names[type.Key];
-                    var sum = type.Value;
-                    msg += $"\n> {icon} {name}: {sum:N0}";
-                }
-                await ReplyAsync(msg);
+            var guildIds = contributions.Select(t => t.GuildId).ToHashSet();
+            var guilds = guildIds.ToDictionary(t => t, t => Context.Client.GetGuild(t));
+            
+            var stream = new MemoryStream();
+            var sw = new StreamWriter(stream);
+            await sw.WriteLineAsync($"guild, username, itemtype, amount");
+            foreach (var c in contributions.OrderBy(s => s.GuildId).ThenBy(s => s.Username))
+            {
+                Console.WriteLine($"{guilds[c.GuildId]?.Name ?? c.GuildId.ToString()}, {c.Username}, {c.ItemType}, {c.Amount}");
+                await sw.WriteLineAsync($"{guilds[c.GuildId]?.Name ?? c.GuildId.ToString()}, {c.Username}, {c.ItemType}, {c.Amount}");
+                await sw.FlushAsync();
             }
+            stream.Seek(0, SeekOrigin.Begin);
+            await Context.Channel.SendFileAsync(stream, "contributions.csv");
         }
 
         public async Task CreateContribution(TuckContext context, Discord.WebSocket.SocketGuildUser user, Discord.WebSocket.SocketGuild guild, ItemType itemType, uint amount) {
@@ -294,6 +263,5 @@ namespace Tuck.Modules
         private uint Positive(int integer) {
             return integer > 0 ? (uint) integer : 0;
         }
-
     }
 }   
