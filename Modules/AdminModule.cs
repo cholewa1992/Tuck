@@ -15,9 +15,9 @@ namespace Brothers.Modules
         [Command("ping")]
         public async Task Ping() {
             var msg = await ReplyAsync("If you see this, then I'm missing edit message right");
-            await msg.ModifyAsync(msg => msg.Content = "pong!");
             var emoji = new Emoji("\uD83D\uDC4C");
             await msg.AddReactionAsync(emoji);
+            await msg.ModifyAsync(msg => msg.Content = "pong!");
         }
 
         [Command("relay")]
