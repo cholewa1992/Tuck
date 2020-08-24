@@ -2,15 +2,17 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tuck;
 
 namespace Tuck.Migrations
 {
     [DbContext(typeof(TuckContext))]
-    partial class TuckContextModelSnapshot : ModelSnapshot
+    [Migration("20200824185600_RemovedWarEffort")]
+    partial class RemovedWarEffort
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
