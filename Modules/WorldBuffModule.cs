@@ -156,7 +156,10 @@ namespace Tuck.Modules
         private async Task UpdateMessage(TuckContext context, Subscription subscription, Embed embed) {
             var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
             var message = await channel.GetMessageAsync(subscription.LastMessage.Value) as RestUserMessage;
-            await message.ModifyAsync(msg => msg.Embed = embed);
+
+            // Fallback incase message doesn't exist, create new one.
+            if (message == null) await PostMessage(context, subscription, embed);
+            else await message.ModifyAsync(msg => msg.Embed = embed);
         }
 
         private async Task PostMessage(TuckContext context, Subscription subscription, Embed embed) {
