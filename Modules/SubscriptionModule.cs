@@ -36,8 +36,8 @@ namespace Tuck.Modules
         [RequireContext(ContextType.Guild)]
         public async Task Subscription() {
             using(var context = new TuckContext()) {
-                var mathces = context.Subscriptions.AsQueryable().Where(t => t.GuildId == Context.Guild.Id);
-                context.RemoveRange(mathces);
+                var matches = context.Subscriptions.AsQueryable().Where(t => t.GuildId == Context.Guild.Id);
+                context.RemoveRange(matches);
                 await context.SaveChangesAsync();
                 await ReplyAsync("The subscription was removed");
             }
