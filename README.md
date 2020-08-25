@@ -45,9 +45,9 @@ Removes the alerts if present.
 Add or remove an upcomming World Buff.
 *These should only be posted in the "Master" guild (Usually Realm Discord).
 
-```!wbuff add <[ony|nef|rend] buff> <DateTime Time>```  
-Adds the specified buff to the selected time, if time is less than current server time, the buff will be listed for the next day.  
-*Example:* `!wbuff add ony 18:45`
+```!wbuff add <[ony|nef|rend] buff> <DateTime Time> [<String Person=Author>]```  
+Adds the specified buff to the selected time, if time is less than current server time, the buff will be listed for the next day. If no Person is specified, defaults to the author of the message.  
+*Example:* `!wbuff add ony 18:45 <Pöbeln>Carl`
 
 ```!wbuff remove <[ony|nef|rend] buff> <DateTime Time>```  
 Removes the specified buff from the list.  
