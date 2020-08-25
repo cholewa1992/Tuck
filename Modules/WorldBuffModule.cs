@@ -109,7 +109,7 @@ namespace Tuck.Modules
                 // Saving the buff instance
                 await context.AddAsync(buff);
                 await context.SaveChangesAsync();
-                // await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
+                await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
 
                 // Posting an update message in all subscribing channels
                 await MakeNotification(context, buff.GuildId, GetBuffPost(context, buff.GuildId));
@@ -128,7 +128,7 @@ namespace Tuck.Modules
                 if(buff != null){
                     context.Remove(buff);
                     await context.SaveChangesAsync();
-                    // await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
+                    await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
 
                     // Posting an update message in all subscribing channels
                     await MakeNotification(context, buff.GuildId, GetBuffPost(context, Context.Guild.Id));
