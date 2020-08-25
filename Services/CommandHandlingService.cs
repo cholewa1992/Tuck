@@ -26,6 +26,7 @@ namespace Tuck.Services
 
             _commands.AddTypeReader(typeof(BuffType), new BuffTypeReader());
             _commands.AddTypeReader(typeof(DateTime), new DateTimeReader(), true);
+            _commands.AddTypeReader(typeof(AlertAction), new AlertActionReader());
 
             _commands.CommandExecuted += CommandExecutedAsync;
             _discord.MessageReceived += MessageReceivedAsync;
