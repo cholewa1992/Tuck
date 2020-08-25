@@ -109,7 +109,7 @@ namespace Tuck.Modules
                 // Saving the buff instance
                 await context.AddAsync(buff);
                 await context.SaveChangesAsync();
-                await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
+                // await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
 
                 // Posting an update message in all subscribing channels
                 await MakeNotification(context, buff.GuildId, GetBuffPost(context, buff.GuildId));
@@ -128,7 +128,7 @@ namespace Tuck.Modules
                 if(buff != null){
                     context.Remove(buff);
                     await context.SaveChangesAsync();
-                    await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
+                    // await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
 
                     // Posting an update message in all subscribing channels
                     await MakeNotification(context, buff.GuildId, GetBuffPost(context, Context.Guild.Id));
@@ -156,7 +156,13 @@ namespace Tuck.Modules
         
         private async Task NotifySubscriber(TuckContext context, Subscription subscription) {
             var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
-            var message = await channel.SendMessageAsync($"<@{subscription.SubscriberAlert}>: World buff list has been updated.");
+            var message = await channel.SendMessageAsync(string.Format(
+                "{0}World buff list has been updated. ({1})",
+                // SubscriberAlert can never be null here either.. So fallback is just to cast to int(64)
+                MentionUtils.MentionRole(subscription.SubscriberAlert ?? 0) + ": ",
+                // CultureInfo param should be refactored to EU/NA/etc when multi-realm support is added.
+                DateTime.Now.ToString("HH:mm", new System.Globalization.CultureInfo("fr-FR"))
+            ));
 
             if (subscription.LastAlert != null) {
                 // So apparently C# thinks it's still a nullable ulong, thus null coalesce..
@@ -165,6 +171,8 @@ namespace Tuck.Modules
             }
 
             subscription.LastAlert = message.Id;
+            context.Update(subscription);
+            await context.SaveChangesAsync();
         }
 
         private async Task UpdateMessage(TuckContext context, Subscription subscription, Embed embed) {
