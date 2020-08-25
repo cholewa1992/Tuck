@@ -142,9 +142,10 @@ namespace Tuck.Modules
                     .ToList();
 
             foreach(var subscription in subscriptions) {
-                try{
+                try {
                     if(subscription.LastMessage == null) await PostMessage(context, subscription, embed);
                     else await UpdateMessage(context, subscription, embed);
+                    if (subscription.SubscriberAlert != null) await NotifySubscriber(context, subscription);
                 } catch (Exception e) {
                     var guild = Context.Client.GetGuild(subscription.GuildId);
                     Console.WriteLine($"Notification for guildId={subscription.GuildId}, guildName={guild.Name}, owner={guild.OwnerId} failed.");
@@ -152,11 +153,35 @@ namespace Tuck.Modules
                 }
             }
         }
+        
+        private async Task NotifySubscriber(TuckContext context, Subscription subscription) {
+            var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
+            var message = await channel.SendMessageAsync(string.Format(
+                "{0}World buff list has been updated. ({1})",
+                // SubscriberAlert can never be null here either.. So fallback is just to cast to int(64)
+                MentionUtils.MentionRole(subscription.SubscriberAlert ?? 0) + ": ",
+                // CultureInfo param should be refactored to EU/NA/etc when multi-realm support is added.
+                DateTime.Now.ToString("HH:mm", new System.Globalization.CultureInfo("fr-FR"))
+            ));
+
+            if (subscription.LastAlert != null) {
+                // So apparently C# thinks it's still a nullable ulong, thus null coalesce..
+                // Pls refactor me..
+                await channel.DeleteMessageAsync(subscription.LastAlert ?? 0);
+            }
+
+            subscription.LastAlert = message.Id;
+            context.Update(subscription);
+            await context.SaveChangesAsync();
+        }
 
         private async Task UpdateMessage(TuckContext context, Subscription subscription, Embed embed) {
             var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
             var message = await channel.GetMessageAsync(subscription.LastMessage.Value) as RestUserMessage;
-            await message.ModifyAsync(msg => msg.Embed = embed);
+
+            // Fallback incase message doesn't exist, create new one.
+            if (message == null) await PostMessage(context, subscription, embed);
+            else await message.ModifyAsync(msg => msg.Embed = embed);
         }
 
         private async Task PostMessage(TuckContext context, Subscription subscription, Embed embed) {
