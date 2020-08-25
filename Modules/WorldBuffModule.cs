@@ -142,15 +142,29 @@ namespace Tuck.Modules
                     .ToList();
 
             foreach(var subscription in subscriptions) {
-                try{
+                try {
                     if(subscription.LastMessage == null) await PostMessage(context, subscription, embed);
                     else await UpdateMessage(context, subscription, embed);
+                    if (subscription.SubscriberAlert != null) await NotifySubscriber(context, subscription);
                 } catch (Exception e) {
                     var guild = Context.Client.GetGuild(subscription.GuildId);
                     Console.WriteLine($"Notification for guildId={subscription.GuildId}, guildName={guild.Name}, owner={guild.OwnerId} failed.");
                     Console.WriteLine(e.Message);
                 }
             }
+        }
+        
+        private async Task NotifySubscriber(TuckContext context, Subscription subscription) {
+            var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
+            var message = await channel.SendMessageAsync($"<@{subscription.SubscriberAlert}>: World buff list has been updated.");
+
+            if (subscription.LastAlert != null) {
+                // So apparently C# thinks it's still a nullable ulong, thus null coalesce..
+                // Pls refactor me..
+                await channel.DeleteMessageAsync(subscription.LastAlert ?? 0);
+            }
+
+            subscription.LastAlert = message.Id;
         }
 
         private async Task UpdateMessage(TuckContext context, Subscription subscription, Embed embed) {
