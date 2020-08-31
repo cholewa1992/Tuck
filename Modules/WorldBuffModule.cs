@@ -109,8 +109,14 @@ namespace Tuck.Modules
                 // Saving the buff instance
                 await context.AddAsync(buff);
                 await context.SaveChangesAsync();
-                await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
 
+                try {
+                    await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
+                } catch (Discord.Net.HttpException) {
+                    // If custom emoji's returns an error, add a thumbs up instead.
+                    await Context.Message.AddReactionAsync(new Emoji("👍"));
+                }
+                
                 // Posting an update message in all subscribing channels
                 await MakeNotification(context, buff.GuildId, GetBuffPost(context, buff.GuildId));
             }
@@ -128,7 +134,13 @@ namespace Tuck.Modules
                 if(buff != null){
                     context.Remove(buff);
                     await context.SaveChangesAsync();
-                    await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
+                    
+                    try {
+                        await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
+                    } catch (Discord.Net.HttpException) {
+                        // If custom emoji's returns an error, add a thumbs up instead.
+                        await Context.Message.AddReactionAsync(new Emoji("👍"));
+                    }
 
                     // Posting an update message in all subscribing channels
                     await MakeNotification(context, buff.GuildId, GetBuffPost(context, Context.Guild.Id));
@@ -164,12 +176,14 @@ namespace Tuck.Modules
                 DateTime.Now.ToString("HH:mm", new System.Globalization.CultureInfo("fr-FR"))
             ));
 
-            if (subscription.LastAlert != null) {
-                // So apparently C# thinks it's still a nullable ulong, thus null coalesce..
-                // Pls refactor me..
-                await channel.DeleteMessageAsync(subscription.LastAlert ?? 0);
+            // If a previous alert exists, delete it.
+            ulong lastAlert = subscription.LastAlert ?? 0;
+            if (lastAlert != 0) {
+                var lastMsg = await channel.GetMessageAsync(lastAlert);
+                if (lastMsg != null) await lastMsg.DeleteAsync();
             }
 
+            // Store the new message Id.
             subscription.LastAlert = message.Id;
             context.Update(subscription);
             await context.SaveChangesAsync();
