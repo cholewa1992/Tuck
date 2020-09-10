@@ -159,9 +159,18 @@ namespace Tuck.Modules
                     else await UpdateMessage(context, subscription, embed);
                     if (subscription.SubscriberAlert != null) await NotifySubscriber(context, subscription);
                 } catch (Exception e) {
+                    // Write in the log that posting to the channel failed.
                     var guild = Context.Client.GetGuild(subscription.GuildId);
-                    Console.WriteLine($"Notification for guildId={subscription.GuildId}, guildName={guild.Name}, owner={guild.OwnerId} failed.");
+                    Console.WriteLine($"Notification for guildId={subscription.GuildId}, guildName={guild?.Name ?? "unkown"}, owner={guild?.OwnerId.ToString() ?? "unkown"} failed.");
                     Console.WriteLine(e.Message);
+
+                    // Remove the subscription that failed.
+                    context.Remove(subscription);
+                    await context.SaveChangesAsync();
+
+                    // Notify in the bother tuck channel that an error happend.
+                    var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
+                    await channel.SendMessageAsync($"I removed the subscription for guildId={subscription.GuildId}, guildName={guild?.Name ?? "unkown"}, owner={guild?.OwnerId.ToString() ?? "unkown"} because I was not able to post there.");
                 }
             }
         }
