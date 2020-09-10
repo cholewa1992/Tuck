@@ -163,15 +163,21 @@ namespace Tuck.Modules
                     var guild = Context.Client.GetGuild(subscription.GuildId);
                     Console.WriteLine($"Notification for guildId={subscription.GuildId}, guildName={guild?.Name ?? "unkown"}, owner={guild?.OwnerId.ToString() ?? "unkown"} failed.");
                     Console.WriteLine(e.Message);
-
-                    // Remove the subscription that failed.
-                    context.Remove(subscription);
-                    await context.SaveChangesAsync();
-
-                    // Notify in the bother tuck channel that an error happend.
-                    var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
-                    await channel.SendMessageAsync($"I removed the subscription for guildId={subscription.GuildId}, guildName={guild?.Name ?? "unkown"}, owner={guild?.OwnerId.ToString() ?? "unkown"} because I was not able to post there.");
+		    await RemoveSubsciption(guild, subscription);
                 }
+            }
+        }
+
+        private async Task RemoveSubsciption(SocketGuild guild, Subscription subscription) {
+            using(var context = new TuckContext()) {
+                // Remove the subscription that failed.
+                context.Subscriptions.Remove(subscription);
+                await context.SaveChangesAsync();
+
+                // Notify in the bother tuck channel that an error happend.
+                var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
+                await channel.SendMessageAsync($"I removed the subscription for guildId={subscription.GuildId}, guildName={guild?.Name ?? "unkown"}, owner={guild?.OwnerId.ToString() ?? "unkown"} because I was not able to post there.");
+		Console.WriteLine($"Removed subscription with id={subscription.Id}");
             }
         }
         
