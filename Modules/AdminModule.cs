@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -28,14 +30,23 @@ namespace Brothers.Modules
         public async Task Messages(ulong channelId) {
             if(Context.User.Id == 103492791069327360) {
                 ISocketMessageChannel channel = Context.Client.GetChannel(channelId) as ISocketMessageChannel;
-                var messages = await channel.GetMessagesAsync().ToListAsync();
-                foreach(var list in messages){
-                    foreach(var msg in list) {
-                        await ReplyAsync($"{msg.Source}: {msg.Content}");
-                    }
-                }
+                var messages = new List<IMessage>();
+                await channel.GetMessagesAsync().ForEachAsync(list => messages.AddRange(list));
+                await DumpMessages(messages);
             }
         }
+
+        private async Task DumpMessages(IReadOnlyCollection<IMessage> messages) {
+             var stream = new MemoryStream();
+             var sw = new StreamWriter(stream);
+             foreach (var msg in messages)
+             {
+                 await sw.WriteLineAsync($"{msg.Source}: {msg.Content}");
+                 await sw.FlushAsync();
+             }
+             stream.Seek(0, SeekOrigin.Begin);
+             await Context.Channel.SendFileAsync(stream, "messages.txt");
+         }
 
         [Command("id")]
         [RequireContext(ContextType.Guild)]
