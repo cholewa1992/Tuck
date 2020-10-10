@@ -29,8 +29,10 @@ namespace Brothers.Modules
             if(Context.User.Id == 103492791069327360) {
                 ISocketMessageChannel channel = Context.Client.GetChannel(channelId) as ISocketMessageChannel;
                 var messages = await channel.GetMessagesAsync().ToListAsync();
-                foreach(var msg in messages){
-                    await ReplyAsync($"{channel.Id} {channel.Name}");
+                foreach(var list in messages){
+                    foreach(var msg in list) {
+                        await ReplyAsync($"{msg.Source}: {msg.Content}");
+                    }
                 }
             }
         }
