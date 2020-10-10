@@ -163,7 +163,9 @@ namespace Tuck.Modules
                     var guild = Context.Client.GetGuild(subscription.GuildId);
                     Console.WriteLine($"Notification for guildId={subscription.GuildId}, guildName={guild?.Name ?? "unkown"}, owner={guild?.OwnerId.ToString() ?? "unkown"} failed.");
                     Console.WriteLine(e.Message);
-		    await RemoveSubsciption(guild, subscription);
+                    if(guild == null){
+                        await RemoveSubsciption(guild, subscription);
+                    } 
                 }
             }
         }
@@ -176,8 +178,8 @@ namespace Tuck.Modules
 
                 // Notify in the bother tuck channel that an error happend.
                 var channel = Context.Client.GetChannel(subscription.ChannelId) as ISocketMessageChannel;
-                await channel.SendMessageAsync($"I removed the subscription for guildId={subscription.GuildId}, guildName={guild?.Name ?? "unkown"}, owner={guild?.OwnerId.ToString() ?? "unkown"} because I was not able to post there.");
-		Console.WriteLine($"Removed subscription with id={subscription.Id}");
+                await ReplyAsync($"I removed the subscription for guildId={subscription.GuildId} because the guild no longer exists.");
+		        Console.WriteLine($"Removed subscription with id={subscription.Id}");
             }
         }
         
@@ -236,7 +238,7 @@ namespace Tuck.Modules
                 builder.AddField($"{DateTime.Today.AddDays(1):dddd}", GetBuffsAsString(tomorrow));
             }
 
-            builder.AddField("\u200B", "The world buff schedule is moderated by the guild masters and officers of Dreadmist. To queue a buff, reach out to one of the officers in your guild and have them add it in the global discord channel.\u200B");
+            builder.AddField("\u200B", "The world buff schedule is moderated by the guild masters and officers of Dreadmist. To queue a buff, reach out to one of the officers in your guild and have them add it in the global discord channel.\u200B If you need further help then go to https://discord.gg/NKNgEsp.\u200B");
 
             return builder.Build();
         }

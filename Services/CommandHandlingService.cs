@@ -43,12 +43,6 @@ namespace Tuck.Services
             if (!(rawMessage is SocketUserMessage message)) return;
             if (message.Source != MessageSource.User) return;
 
-            if((message.Channel as IGuildChannel)?.Guild.Id == 610455239757266955) {
-                if(message.Content.Contains("Death's Sting") || message.Content.Contains("Deaths Sting") || message.Content.Contains("item=21126")) {
-                    await message.Channel.SendMessageAsync("That weapon should be prio to <@103492791069327360>!");
-                }
-            }
-
             // This value holds the offset where the prefix ends
             var argPos = 0;
             // Perform prefix check. You may want to replace this with
