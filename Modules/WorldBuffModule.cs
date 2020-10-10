@@ -238,7 +238,7 @@ namespace Tuck.Modules
                 builder.AddField($"{DateTime.Today.AddDays(1):dddd}", GetBuffsAsString(tomorrow));
             }
 
-            builder.AddField("\u200B", "The world buff schedule is moderated by the guild masters and officers of Dreadmist. To queue a buff, reach out to one of the officers in your guild and have them add it in the global discord channel.\u200B If you need further help then go to https://discord.gg/NKNgEsp.\u200B");
+            builder.AddField("\u200B", "The world buff schedule is moderated by the guild masters and officers of Dreadmist. To queue a buff, reach out to one of the officers in your guild and have them add it in the global discord channel.\u200B If you need further help then go to https://discord.gg/NKNgEsp \u200B");
 
             return builder.Build();
         }
