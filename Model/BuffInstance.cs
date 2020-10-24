@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Discord;
 using Discord.Commands;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Tuck.Model
 {
@@ -15,5 +16,8 @@ namespace Tuck.Model
         public ulong GuildId { get; set; }
         public DateTime Time { get; set; }
         public BuffType Type { get; set; }
+
+        [NotMapped]
+        public bool Conflicting { get; set; }
     }
 }   
