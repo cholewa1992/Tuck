@@ -246,7 +246,7 @@ namespace Tuck.Modules
             var lastPops = new Dictionary<BuffType, DateTime>();
 
             foreach(var buff in buffs.OrderBy(t => t.Time)) {
-                if(lastPops.ContainsKey(buff.Type)) {
+                if(lastPops.ContainsKey(buff.Type) && _cooldown.ContainsKey(buff.Type) ) {
                     var lastPop = lastPops[buff.Type];
                     var cooldown = _cooldown[buff.Type];
                     buff.Conflicting = buff.Time < lastPop.AddHours(cooldown);
