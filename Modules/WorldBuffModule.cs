@@ -27,6 +27,13 @@ namespace Tuck.Modules
             {BuffType.Rend, "<:WCB1:724665604245684284>"}
         };
 
+        private static Dictionary<BuffType, string> _names = new Dictionary<BuffType, string> {
+            {BuffType.Ony, "Onyxia"},
+            {BuffType.Nef, "Nefarian"},
+            {BuffType.Zg, "Zandalar"},
+            {BuffType.Rend, "Rend"}
+        };
+
         [Command("list")]
         [Alias("overview")]
         [RequireContext(ContextType.Guild)]
@@ -59,7 +66,7 @@ namespace Tuck.Modules
         public async Task RegisterBuff(BuffType type, DateTime time, [Remainder] string username) {
 
             if(time < DateTime.Now) {
-                await ReplyAsync($"On my watch the time is already {DateTime.Now.ToString("HH:mm")}. You can't add buffs earlier than that.");
+                await ReplyAsync($"On my watch the time is already {DateTime.Now.ToString("HH:mm:ss")}. You can't add buffs earlier than that. If you ment to add it for tomorrow, then write {time:HH:mm}+1.");
                 return;
             }
 
@@ -82,6 +89,7 @@ namespace Tuck.Modules
                     Username = username
                 };
 
+                var conflict = false;
                 if(_cooldown.ContainsKey(buff.Type)) {
 
                     var from = buff.Time.AddHours(-_cooldown[buff.Type]);
@@ -95,6 +103,7 @@ namespace Tuck.Modules
                         .ToList();
                     
                     if(overlaps.Count > 0) {
+                        conflict = true;
                         var warning = $"The buff you just added will clash with buffs already added:";
                         foreach(var overlap in overlaps) {
                             warning += $"\n> {overlap.Time.ToString("HH:mm")} by {overlap.Username} (<@{overlap.UserId}>)";
@@ -112,11 +121,14 @@ namespace Tuck.Modules
 
                 try {
                     await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
+                    if(conflict) {
+                        await Context.Message.AddReactionAsync(new Emoji("⚠️"));
+                    }
                 } catch (Discord.Net.HttpException) {
                     // If custom emoji's returns an error, add a thumbs up instead.
                     await Context.Message.AddReactionAsync(new Emoji("👍"));
                 }
-                
+
                 // Posting an update message in all subscribing channels
                 await MakeNotification(context, buff.GuildId, GetBuffPost(context, buff.GuildId));
             }
@@ -230,36 +242,41 @@ namespace Tuck.Modules
                 .WithFooter("Last updated")
                 .WithCurrentTimestamp();
 
-            var today = GetBuffsToday(context, guildId);
-            builder.AddField($"{DateTime.Today:dddd}", GetBuffsAsString(today));
+            var buffs = GetBuffs(context, guildId);
+            var lastPops = new Dictionary<BuffType, DateTime>();
 
-            var tomorrow = GetBuffsTomorrow(context, guildId);
-            if(tomorrow.Count() != 0) {
-                builder.AddField($"{DateTime.Today.AddDays(1):dddd}", GetBuffsAsString(tomorrow));
+            foreach(var buff in buffs.OrderBy(t => t.Time)) {
+                if(lastPops.ContainsKey(buff.Type)) {
+                    var lastPop = lastPops[buff.Type];
+                    var cooldown = _cooldown[buff.Type];
+                    buff.Conflicting = buff.Time < lastPop.AddHours(cooldown);
+                }
+                lastPops[buff.Type] = buff.Time;
+            }
+        
+            var buffsByDay = buffs
+                .Where(t => t.Time.Date >= DateTime.Today)
+                .GroupBy(t => t.Time.Date)
+                .OrderBy(g => g.Key);
+
+            foreach(var day in buffsByDay) {
+                builder.AddField($"{day.Key:dddd, dd MMMM}", GetBuffsAsString(day));
             }
 
-            builder.AddField("\u200B", "The world buff schedule is moderated by the guild masters and officers of Dreadmist. To queue a buff, reach out to one of the officers in your guild and have them add it in the global discord channel.\u200B If you need further help then go to https://discord.gg/NKNgEsp \u200B");
-
+            builder.AddField("\u200B", "https://discord.gg/NKNgEsp\u200B");
             return builder.Build();
         }
 
-        private List<BuffInstance> GetBuffsToday(TuckContext context, ulong guildId) {
+        private ICollection<BuffInstance> GetBuffs(TuckContext context, ulong guildId) {
             return context.Buffs.AsQueryable()
-                .Where(t => t.GuildId == guildId && DateTime.Today == t.Time.Date)
-                .OrderBy(t => t.Time).ThenBy(t => t.Type)
-                .ToList();
-        }
-
-        private List<BuffInstance> GetBuffsTomorrow(TuckContext context, ulong guildId) {
-            return context.Buffs.AsQueryable()
-                .Where(t => t.GuildId == guildId && DateTime.Today.AddDays(1) == t.Time.Date)
-                .OrderBy(t => t.Time).ThenBy(t => t.Type)
+                .Where(t => t.GuildId == guildId && DateTime.Today.AddHours(-8) <= t.Time)
                 .ToList();
         }
 
         private string GetBuffsAsString(IEnumerable<BuffInstance> buffs) {
             var buffMsg = buffs
-                .Select(t => $"> {_icons[t.Type]} {t.Time.ToString("HH:mm")} by {t.Username}")
+                .OrderBy(t => t.Time).ThenBy(t => t.Type)
+                .Select(t => $"> {(t.Conflicting ? ":warning:" :_icons[t.Type])} {_names[t.Type]} at {t.Time.ToString("HH:mm")} by {t.Username}")
                 .Aggregate("", (s1,s2) => s1 + "\n" + s2);
             return string.IsNullOrEmpty(buffMsg) ? "> Nothing added" : buffMsg;
         }
