@@ -328,9 +328,15 @@ namespace Tuck.Modules
         private string GetBuffsAsString(IEnumerable<BuffInstance> buffs) {
             var buffMsg = buffs
                 .OrderBy(t => t.Time).ThenBy(t => t.Type)
-                .Select(t => $"> {((t.Conflicting || t.Ninja) ? ":warning:" :_icons[t.Type])} {t.Time.ToString("HH:mm")} {_names[t.Type]} by {t.Username}")
+                .Select(t => $"> {GetBuffIcon(t)} {t.Time.ToString("HH:mm")} {_names[t.Type]} by {t.Username}")
                 .Aggregate("", (s1,s2) => s1 + "\n" + s2);
             return string.IsNullOrEmpty(buffMsg) ? "> Nothing added" : buffMsg;
+        }
+
+        private string GetBuffIcon(BuffInstance buff) {
+            if(buff.Ninja) return ":ninja:";
+            if(buff.Conflicting) return ":warning:";
+            return _icons[buff.Type];
         }
     }
 }   
