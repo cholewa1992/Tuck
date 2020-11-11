@@ -16,6 +16,7 @@ namespace Tuck.Model
         public ulong GuildId { get; set; }
         public DateTime Time { get; set; }
         public BuffType Type { get; set; }
+        public bool Ninja { get; set; }
 
         [NotMapped]
         public bool Conflicting { get; set; }

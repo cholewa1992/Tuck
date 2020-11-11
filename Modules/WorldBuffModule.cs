@@ -134,6 +134,58 @@ namespace Tuck.Modules
             }
         }
 
+        [Command("ninja")]
+        [RequireContext(ContextType.Guild)]
+        public async Task RegisterNinjaPop(BuffType type, DateTime time) {
+            var user = Context.Guild.GetUser(Context.User.Id);
+            await RegisterNinjaPop(type, time, user.Nickname ?? user.Username);
+        }  
+
+        [Command("ninja")]
+        [RequireContext(ContextType.Guild)]
+        public async Task RegisterNinjaPop(BuffType type, DateTime time, [Remainder] string username) {
+
+            if(time > DateTime.Now) {
+                await ReplyAsync($"On my watch the time is already {DateTime.Now.ToString("HH:mm:ss")}. You can't add a ninja pop that didn't happen yet.");
+                return;
+            }
+
+            using(var context = new TuckContext()) {
+
+                var subscription = context.Subscriptions.AsQueryable()
+                    .Where(s => s.GuildId == Context.Guild.Id && s.TargetGuildId != s.GuildId)
+                    .Any();
+
+                if(subscription) {
+                    await ReplyAsync("You cannot add buffs if a subscription exists");
+                    return;
+                }
+
+                var buff = new BuffInstance {
+                    GuildId = Context.Guild.Id,
+                    UserId = Context.User.Id,
+                    Time = time,
+                    Type = type,
+                    Ninja = true,
+                    Username = username
+                };
+
+                // Saving the buff instance
+                await context.AddAsync(buff);
+                await context.SaveChangesAsync();
+
+                try {
+                    await Context.Message.AddReactionAsync(Emote.Parse(_icons[buff.Type]));
+                } catch (Discord.Net.HttpException) {
+                    // If custom emoji's returns an error, add a thumbs up instead.
+                    await Context.Message.AddReactionAsync(new Emoji("👍"));
+                }
+
+                // Posting an update message in all subscribing channels
+                await MakeNotification(context, buff.GuildId, GetBuffPost(context, buff.GuildId));
+            }
+        }
+
         [Command("remove")]
         [RequireContext(ContextType.Guild)]
         public async Task RemoveBuff(BuffType type, DateTime time) {
@@ -276,7 +328,7 @@ namespace Tuck.Modules
         private string GetBuffsAsString(IEnumerable<BuffInstance> buffs) {
             var buffMsg = buffs
                 .OrderBy(t => t.Time).ThenBy(t => t.Type)
-                .Select(t => $"> {(t.Conflicting ? ":warning:" :_icons[t.Type])} {t.Time.ToString("HH:mm")} {_names[t.Type]} by {t.Username}")
+                .Select(t => $"> {((t.Conflicting || t.Ninja) ? ":warning:" :_icons[t.Type])} {t.Time.ToString("HH:mm")} {_names[t.Type]} by {t.Username}")
                 .Aggregate("", (s1,s2) => s1 + "\n" + s2);
             return string.IsNullOrEmpty(buffMsg) ? "> Nothing added" : buffMsg;
         }
